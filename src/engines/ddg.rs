@@ -2,7 +2,7 @@ use scraper::Html;
 use serde_json::Value;
 use url::Url;
 
-use super::{checked_text, clean_text, selector};
+use super::{checked_json, checked_text, clean_text, selector};
 use crate::{Error, ImageResult, Result, SearchResult};
 
 #[derive(Clone)]
@@ -72,14 +72,14 @@ impl DuckDuckGo {
             ("f", ",,,"),
             ("p", "1"),
         ];
-        let body = checked_text(
+        let value: Value = checked_json(
+            "duckduckgo",
             self.client
                 .get("https://duckduckgo.com/i.js")
                 .header("Referer", "https://duckduckgo.com/")
                 .query(&params),
         )
         .await?;
-        let value: Value = serde_json::from_str(&body)?;
         let rows = value
             .get("results")
             .and_then(Value::as_array)

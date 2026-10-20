@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
-use super::checked_text;
-use crate::{BookResult, Error, Result};
+use super::checked_json;
+use crate::{BookResult, Result};
 
 #[derive(Clone)]
 pub(crate) struct OpenLibrary {
@@ -26,19 +26,13 @@ impl OpenLibrary {
                 "key,title,author_name,first_publish_year,edition_count,cover_i",
             ),
         ];
-        let body = checked_text(
+        let parsed: ApiResponse = checked_json(
+            "open_library",
             self.client
                 .get("https://openlibrary.org/search.json")
                 .query(&params),
         )
         .await?;
-        let parsed: ApiResponse = serde_json::from_str(&body)?;
-        if parsed.docs.is_empty() && !body.contains("\"docs\"") {
-            return Err(Error::InvalidResponse {
-                engine: "open_library",
-                message: "missing docs array".into(),
-            });
-        }
 
         Ok(parsed
             .docs
@@ -61,7 +55,6 @@ impl OpenLibrary {
 
 #[derive(Deserialize)]
 struct ApiResponse {
-    #[serde(default)]
     docs: Vec<Row>,
 }
 

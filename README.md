@@ -49,10 +49,18 @@ async fn main() -> Result<()> {
 ```bash
 cargo test --all-targets
 cargo clippy --all-targets -- -D warnings
-cargo test --test live -- --ignored --nocapture
+cargo test --test live -- --ignored --nocapture --test-threads=1
 ```
 
 The regular test suite is deterministic. Ignored integration tests call public services and may fail because of rate limits, endpoint changes, or network restrictions.
+
+## Response decoding and diagnostics
+
+The browser profile advertises `gzip`, `deflate`, `br`, and `zstd`; the matching `primp` decompression features are explicitly enabled. Disabling these features while keeping the profile's `Accept-Encoding` header can pass compressed bytes to a JSON parser.
+
+JSON endpoints send `Accept: application/json`. Malformed or non-JSON responses return `Error::InvalidResponse` with the engine name, content type, and content encoding; response bodies are not included in diagnostics. Non-success HTTP responses remain `Error::Status`, including HTTP 429 rate limits. These errors are not treated as empty results or successful live tests.
+
+Local HTTP fixture tests exercise all four compression encodings, identity JSON, HTML responses, and HTTP 429 without depending on external services. They do not prove public-service availability. In validation of this change, Open Library's live test passed, while Wikipedia returned HTTP 429 from the test environment; Wikipedia live success therefore remains unverified.
 
 ## Attribution
 

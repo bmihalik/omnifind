@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::checked_text;
+use super::checked_json;
 use crate::{Error, Result, SearchResult};
 
 #[derive(Clone)]
@@ -26,14 +26,14 @@ impl Qwant {
             ("offset", "0"),
             ("device", "desktop"),
         ];
-        let body = checked_text(
+        let value: Value = checked_json(
+            "qwant",
             self.client
                 .get("https://api.qwant.com/v3/search/web")
                 .header("Referer", "https://www.qwant.com/")
                 .query(&params),
         )
         .await?;
-        let value: Value = serde_json::from_str(&body)?;
         let rows = value
             .pointer("/data/result/items/mainline/0/items")
             .or_else(|| value.pointer("/data/result/items"))

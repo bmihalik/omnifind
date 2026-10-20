@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use super::checked_text;
+use super::checked_json;
 use crate::{Error, Result, SearchResult};
 
 #[derive(Clone)]
@@ -27,8 +27,8 @@ impl Wikipedia {
             ("format", "json"),
             ("utf8", "1"),
         ];
-        let body = checked_text(self.client.get(endpoint).query(&params)).await?;
-        let parsed: ApiResponse = serde_json::from_str(&body)?;
+        let parsed: ApiResponse =
+            checked_json("wikipedia", self.client.get(endpoint).query(&params)).await?;
         let rows = parsed
             .query
             .ok_or_else(|| Error::InvalidResponse {
