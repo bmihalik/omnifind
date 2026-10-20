@@ -61,7 +61,7 @@ impl DuckDuckGo {
         )
         .await?;
         let token = extract_vqd(&landing).ok_or_else(|| Error::InvalidResponse {
-            source: "duckduckgo",
+            engine: "duckduckgo",
             message: "missing image-search token".into(),
         })?;
         let params = [
@@ -84,7 +84,7 @@ impl DuckDuckGo {
             .get("results")
             .and_then(Value::as_array)
             .ok_or_else(|| Error::InvalidResponse {
-                source: "duckduckgo",
+                engine: "duckduckgo",
                 message: "missing image results".into(),
             })?;
 
@@ -128,14 +128,13 @@ fn extract_vqd(html: &str) -> Option<String> {
     ["vqd='", "vqd=\"", "vqd="].iter().find_map(|needle| {
         let start = html.find(needle)? + needle.len();
         let rest = &html[start..];
-        let end = rest.find(|character: char| matches!(character, '\'' | '"' | '&' | ';'))?;
+        let end = rest.find(['\'', '"', '&', ';'])?;
         (!rest[..end].is_empty()).then(|| rest[..end].to_owned())
     })
 }
 
 fn unwrap_redirect(href: &str) -> String {
-    let parsed = Url::parse(href)
-        .or_else(|_| Url::parse(&format!("https://duckduckgo.com{href}")));
+    let parsed = Url::parse(href).or_else(|_| Url::parse(&format!("https://duckduckgo.com{href}")));
     parsed
         .ok()
         .and_then(|url| {

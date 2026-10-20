@@ -35,7 +35,7 @@ impl OpenLibrary {
         let parsed: ApiResponse = serde_json::from_str(&body)?;
         if parsed.docs.is_empty() && !body.contains("\"docs\"") {
             return Err(Error::InvalidResponse {
-                source: "open_library",
+                engine: "open_library",
                 message: "missing docs array".into(),
             });
         }

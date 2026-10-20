@@ -57,7 +57,7 @@ impl OmnifindBuilder {
         }
 
         Ok(Omnifind {
-            client: builder.build(),
+            client: builder.build()?,
         })
     }
 }
@@ -107,9 +107,10 @@ impl Omnifind {
         per_engine: usize,
     ) -> Result<Vec<SearchResult>> {
         validate_query(query)?;
-        let tasks = engines.iter().copied().map(|engine| async move {
-            self.search(engine, query, per_engine).await
-        });
+        let tasks = engines
+            .iter()
+            .copied()
+            .map(|engine| async move { self.search(engine, query, per_engine).await });
         let mut output = Vec::new();
         for mut rows in join_all(tasks).await.into_iter().flatten() {
             output.append(&mut rows);

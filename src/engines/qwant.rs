@@ -39,7 +39,7 @@ impl Qwant {
             .or_else(|| value.pointer("/data/result/items"))
             .and_then(Value::as_array)
             .ok_or_else(|| Error::InvalidResponse {
-                source: "qwant",
+                engine: "qwant",
                 message: "missing result items".into(),
             })?;
 

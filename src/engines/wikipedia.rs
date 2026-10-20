@@ -32,7 +32,7 @@ impl Wikipedia {
         let rows = parsed
             .query
             .ok_or_else(|| Error::InvalidResponse {
-                source: "wikipedia",
+                engine: "wikipedia",
                 message: "missing query object".into(),
             })?
             .search;
@@ -41,10 +41,7 @@ impl Wikipedia {
             .into_iter()
             .take(limit)
             .map(|row| SearchResult {
-                url: format!(
-                    "https://en.wikipedia.org/wiki/{}",
-                    encode_title(&row.title)
-                ),
+                url: format!("https://en.wikipedia.org/wiki/{}", encode_title(&row.title)),
                 title: row.title,
                 snippet: strip_tags(&row.snippet),
                 source: "wikipedia".into(),

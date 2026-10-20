@@ -7,9 +7,9 @@ pub enum Error {
     Http(#[from] primp::Error),
     #[error("remote service returned HTTP {status} for {url}")]
     Status { status: u16, url: String },
-    #[error("invalid response from {source}: {message}")]
+    #[error("invalid response from {engine}: {message}")]
     InvalidResponse {
-        source: &'static str,
+        engine: &'static str,
         message: String,
     },
     #[error("URL error: {0}")]
