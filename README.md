@@ -50,6 +50,7 @@ async fn main() -> Result<()> {
 cargo test --all-targets
 cargo clippy --all-targets -- -D warnings
 cargo test --test live -- --ignored --nocapture --test-threads=1
+cargo run --example cli -- --help
 ```
 
 The regular test suite is deterministic. Ignored integration tests call public services and may fail because of rate limits, endpoint changes, or network restrictions.

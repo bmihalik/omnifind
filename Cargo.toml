@@ -21,4 +21,10 @@ thiserror = "2"
 url = "2"
 
 [dev-dependencies]
+clap = { version = "4.5", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[[example]]
+name = "cli"
+path = "examples/cli.rs"
+test = true
