@@ -23,8 +23,15 @@ url = "2"
 [dev-dependencies]
 clap = { version = "4.5", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+rmcp = { version = "=3.6.0", default-features = false, features = ["server", "macros", "transport-io"] }
 
 [[example]]
 name = "cli"
 path = "examples/cli.rs"
 test = true
+
+[[example]]
+name = "mcp"
+path = "examples/mcp.rs"
+test = true
+

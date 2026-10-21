@@ -9,6 +9,17 @@ pub struct SearchResult {
     pub source: String,
 }
 
+/// A Marginalia API response with the upstream license notice preserved.
+///
+/// `license` is `None` only when a zero result limit avoided the HTTP request.
+/// Normalization does not grant additional rights to the returned data.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MarginaliaResponse {
+    pub query: String,
+    pub license: Option<String>,
+    pub results: Vec<SearchResult>,
+}
+
 /// A normalized image search result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageResult {
@@ -49,16 +60,18 @@ pub enum Engine {
     DuckDuckGo,
     Qwant,
     Wikipedia,
+    Marginalia,
 }
 
 impl Engine {
-    pub const ALL: [Self; 3] = [Self::DuckDuckGo, Self::Qwant, Self::Wikipedia];
+    pub const ALL: [Self; 4] = [Self::DuckDuckGo, Self::Qwant, Self::Wikipedia, Self::Marginalia];
 
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::DuckDuckGo => "duckduckgo",
             Self::Qwant => "qwant",
             Self::Wikipedia => "wikipedia",
+            Self::Marginalia => "marginalia",
         }
     }
 }

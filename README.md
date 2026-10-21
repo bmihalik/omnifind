@@ -70,3 +70,61 @@ The concept and product direction are by **Béla István MIHALIK**. The initial 
 ## License
 
 Licensed under either the Apache License, Version 2.0 or the MIT License, at your option.
+
+
+## Marginalia
+
+Marginalia is available as `Engine::Marginalia` in `search()` and `metasearch()`;
+`Engine::ALL` now includes four engines. Adding this enum variant requires updating
+any downstream exhaustive `match` expressions. Source tags are `"marginalia"`.
+
+The adapter uses the current API at `https://api2.marginalia-search.com/search`,
+with `query` and `count` query parameters and an `API-Key` header. No API key is
+placed in the URL or other engines' default headers. A separate HTTP client
+copies the configured timeout/proxy/impersonation settings and refuses redirects
+to prevent forwarding the custom credential header.
+
+```rust,no_run
+use omnifind::{Engine, Omnifind, Result};
+
+# async fn example() -> Result<()> {
+let client = Omnifind::builder()
+    .marginalia_api_key("YOUR_KEY")
+    .build()?;
+
+// Recommended: preserve the upstream license notice, even for zero matches.
+let response = client.marginalia("small web", 5).await?;
+println!("License: {:?}", response.license);
+for row in response.results {
+    println!("{} — {}", row.title, row.url);
+}
+
+// Generic normalized API is also supported, but drops response-level metadata.
+let rows = client.search(Engine::Marginalia, "small web", 5).await?;
+# let _ = rows;
+# Ok(())
+# }
+```
+
+No key configured means the documented shared `public` **experimental** key.
+For sustained use obtain your own key. The library intentionally does not read
+environment variables; applications can pass them to the builder. The executable
+example reads `MARGINALIA_API_KEY` explicitly:
+
+```bash
+MARGINALIA_API_KEY='YOUR_KEY' cargo run --example marginalia -- "small web"
+```
+
+Counts are capped at 100 per request; there is no automatic pagination, retry, or
+HTML-scraping fallback. A zero limit performs no HTTP request and returns
+`license: null`, rather than an invented notice. Non-success statuses (including
+429/503) and malformed response schemas are errors. Existing `metasearch()` still
+omits failed engines; query `marginalia()` directly for explicit errors and license
+metadata. The ordinary `SearchResult` shape is unchanged.
+
+**Data terms are separate from crate licensing.** Marginalia's public and
+non-commercial results are provided under CC-BY-NC-SA 4.0; commercial use requires
+appropriate commercial terms. Preserve the returned license/attribution notice
+when redistributing data. Normalization into `SearchResult` does not relicense it
+under MIT/Apache-2.0. See the authoritative API terms:
+https://about.marginalia-search.com/article/api/

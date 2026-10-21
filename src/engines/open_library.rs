@@ -18,21 +18,8 @@ impl OpenLibrary {
             return Ok(Vec::new());
         }
         let limit_string = limit.min(100).to_string();
-        let params = [
-            ("q", query),
-            ("limit", limit_string.as_str()),
-            (
-                "fields",
-                "key,title,author_name,first_publish_year,edition_count,cover_i",
-            ),
-        ];
-        let parsed: ApiResponse = checked_json(
-            "open_library",
-            self.client
-                .get("https://openlibrary.org/search.json")
-                .query(&params),
-        )
-        .await?;
+        let params = [("q", query), ("limit", limit_string.as_str()), ("fields", "key,title,author_name,first_publish_year,edition_count,cover_i")];
+        let parsed: ApiResponse = checked_json("open_library", self.client.get("https://openlibrary.org/search.json").query(&params)).await?;
 
         Ok(parsed
             .docs
@@ -44,9 +31,7 @@ impl OpenLibrary {
                 first_publish_year: row.first_publish_year,
                 edition_count: row.edition_count,
                 key: row.key,
-                cover_url: row
-                    .cover_i
-                    .map(|id| format!("https://covers.openlibrary.org/b/id/{id}-M.jpg")),
+                cover_url: row.cover_i.map(|id| format!("https://covers.openlibrary.org/b/id/{id}-M.jpg")),
                 source: "open_library".into(),
             })
             .collect())

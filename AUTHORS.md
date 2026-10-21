@@ -12,8 +12,3 @@ His contribution includes the project name, goals, intended capabilities, engine
 
 The generated contribution covers crate structure, public API design, asynchronous client orchestration, source adapters, response parsing, result normalization, web-content extraction, error handling, examples, tests, documentation, and packaging metadata.
 
-## Stewardship
-
-Béla István MIHALIK is the concept originator and project steward. Future human or AI-assisted contributions should be documented through Git history, pull requests, and updates to this file where appropriate.
-
-AI-generated code should be reviewed, tested, secured, and maintained like any other software contribution.
