@@ -24,9 +24,11 @@ async fn marginalia_search_works() -> Result<()> {
     let mut builder = Omnifind::builder();
     if let Ok(key) = std::env::var("MARGINALIA_API_KEY") {
         builder = builder.marginalia_api_key(key);
+        let response = builder.build()?.marginalia("small web", 3).await?;
+        assert!(response.license.is_some(), "Marginalia omitted its license notice");
+        assert!(!response.results.is_empty(), "Marginalia returned no results");
+    } else {
+        eprint!("Skipping: no API has been provided! ... ");
     }
-    let response = builder.build()?.marginalia("small web", 3).await?;
-    assert!(response.license.is_some(), "Marginalia omitted its license notice");
-    assert!(!response.results.is_empty(), "Marginalia returned no results");
     Ok(())
 }

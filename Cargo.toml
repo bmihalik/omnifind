@@ -1,6 +1,6 @@
 [package]
 name = "omnifind"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.85"
 description = "Async metasearch and web-content extraction powered by primp"
