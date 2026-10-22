@@ -6,7 +6,9 @@ use futures::future::join_all;
 use scraper::Html;
 
 use crate::engines::{self, DuckDuckGo, Marginalia, OpenLibrary, Qwant, Wikipedia};
-use crate::{BookResult, Engine, Error, ExtractedPage, ImageResult, MarginaliaResponse, Result, SearchResult};
+use crate::{
+    BookResult, Engine, Error, ExtractedPage, ImageResult, MarginaliaResponse, Result, SearchResult,
+};
 
 /// Builder for [`Omnifind`].
 #[derive(Clone)]
@@ -23,7 +25,10 @@ impl fmt::Debug for OmnifindBuilder {
             .field("timeout", &self.timeout)
             .field("proxy", &self.proxy.as_ref().map(|_| "[REDACTED]"))
             .field("impersonate", &self.impersonate)
-            .field("marginalia_api_key", &self.marginalia_api_key.as_ref().map(|_| "[REDACTED]"))
+            .field(
+                "marginalia_api_key",
+                &self.marginalia_api_key.as_ref().map(|_| "[REDACTED]"),
+            )
             .finish()
     }
 }
@@ -66,25 +71,36 @@ impl OmnifindBuilder {
 
     pub fn build(self) -> Result<Omnifind> {
         if self.timeout.is_zero() {
-            return Err(Error::Configuration("timeout must be greater than zero".into()));
+            return Err(Error::Configuration(
+                "timeout must be greater than zero".into(),
+            ));
         }
 
         let key = self.marginalia_api_key.as_deref().unwrap_or("public");
         if key.is_empty() || !key.bytes().all(|byte| byte.is_ascii_graphic()) {
-            return Err(Error::Configuration("Marginalia API key must contain only nonempty visible ASCII without whitespace".into()));
+            return Err(Error::Configuration(
+                "Marginalia API key must contain only nonempty visible ASCII without whitespace"
+                    .into(),
+            ));
         }
-        let mut api_key = HeaderValue::from_str(key).map_err(|_| Error::Configuration("invalid Marginalia API key header".into()))?;
+        let mut api_key = HeaderValue::from_str(key)
+            .map_err(|_| Error::Configuration("invalid Marginalia API key header".into()))?;
         api_key.set_sensitive(true);
 
         let make_builder = || -> Result<primp::ClientBuilder> {
-            let mut builder = primp::Client::builder().impersonate(self.impersonate).timeout(self.timeout).cookie_store(true);
+            let mut builder = primp::Client::builder()
+                .impersonate(self.impersonate)
+                .timeout(self.timeout)
+                .cookie_store(true);
             if let Some(proxy) = &self.proxy {
                 builder = builder.proxy(primp::Proxy::all(proxy)?);
             }
             Ok(builder)
         };
         let client = make_builder()?.build()?;
-        let marginalia_client = make_builder()?.redirect(primp::redirect::Policy::none()).build()?;
+        let marginalia_client = make_builder()?
+            .redirect(primp::redirect::Policy::none())
+            .build()?;
         Ok(Omnifind {
             client,
             marginalia: Marginalia::new(marginalia_client, api_key),
@@ -112,13 +128,26 @@ impl Omnifind {
     ///
     /// Marginalia results remain subject to its API terms; this generic method
     /// returns only normalized rows, not the upstream response-level license.
-    pub async fn search(&self, engine: Engine, query: &str, limit: usize) -> Result<Vec<SearchResult>> {
+    pub async fn search(
+        &self,
+        engine: Engine,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<SearchResult>> {
         validate_query(query)?;
         match engine {
-            Engine::DuckDuckGo => DuckDuckGo::new(self.client.clone()).search(query, limit).await,
+            Engine::DuckDuckGo => {
+                DuckDuckGo::new(self.client.clone())
+                    .search(query, limit)
+                    .await
+            }
             Engine::Marginalia => Ok(self.marginalia(query, limit).await?.results),
             Engine::Qwant => Qwant::new(self.client.clone()).search(query, limit).await,
-            Engine::Wikipedia => Wikipedia::new(self.client.clone()).search(query, limit).await,
+            Engine::Wikipedia => {
+                Wikipedia::new(self.client.clone())
+                    .search(query, limit)
+                    .await
+            }
         }
     }
 
@@ -136,9 +165,17 @@ impl Omnifind {
     ///
     /// This includes Marginalia failures; use `marginalia()` separately if you
     /// need its license metadata or reliable per-engine failure reporting.
-    pub async fn metasearch(&self, query: &str, engines: &[Engine], per_engine: usize) -> Result<Vec<SearchResult>> {
+    pub async fn metasearch(
+        &self,
+        query: &str,
+        engines: &[Engine],
+        per_engine: usize,
+    ) -> Result<Vec<SearchResult>> {
         validate_query(query)?;
-        let tasks = engines.iter().copied().map(|engine| async move { self.search(engine, query, per_engine).await });
+        let tasks = engines
+            .iter()
+            .copied()
+            .map(|engine| async move { self.search(engine, query, per_engine).await });
         let mut output = Vec::new();
         for mut rows in join_all(tasks).await.into_iter().flatten() {
             output.append(&mut rows);
@@ -149,18 +186,24 @@ impl Omnifind {
 
     pub async fn images(&self, query: &str, limit: usize) -> Result<Vec<ImageResult>> {
         validate_query(query)?;
-        DuckDuckGo::new(self.client.clone()).images(query, limit).await
+        DuckDuckGo::new(self.client.clone())
+            .images(query, limit)
+            .await
     }
 
     pub async fn books(&self, query: &str, limit: usize) -> Result<Vec<BookResult>> {
         validate_query(query)?;
-        OpenLibrary::new(self.client.clone()).search(query, limit).await
+        OpenLibrary::new(self.client.clone())
+            .search(query, limit)
+            .await
     }
 
     pub async fn extract(&self, url: &str) -> Result<ExtractedPage> {
         let parsed = url::Url::parse(url)?;
         if !matches!(parsed.scheme(), "http" | "https") {
-            return Err(Error::Configuration("only http and https URLs are supported".into()));
+            return Err(Error::Configuration(
+                "only http and https URLs are supported".into(),
+            ));
         }
 
         let body = engines::checked_text(self.client.get(parsed.as_str())).await?;
@@ -174,7 +217,11 @@ impl Omnifind {
             .next()
             .map(|node| engines::clean_text(&node.text().collect::<String>()))
             .filter(|value| !value.is_empty());
-        let text = document.select(&content_selector).next().map(|node| engines::clean_text(&node.text().collect::<String>())).unwrap_or_default();
+        let text = document
+            .select(&content_selector)
+            .next()
+            .map(|node| engines::clean_text(&node.text().collect::<String>()))
+            .unwrap_or_default();
         let links = document
             .select(&link_selector)
             .filter_map(|node| node.value().attr("href"))

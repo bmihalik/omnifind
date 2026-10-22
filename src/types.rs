@@ -64,7 +64,12 @@ pub enum Engine {
 }
 
 impl Engine {
-    pub const ALL: [Self; 4] = [Self::DuckDuckGo, Self::Qwant, Self::Wikipedia, Self::Marginalia];
+    pub const ALL: [Self; 4] = [
+        Self::DuckDuckGo,
+        Self::Qwant,
+        Self::Wikipedia,
+        Self::Marginalia,
+    ];
 
     pub const fn as_str(self) -> &'static str {
         match self {

@@ -50,7 +50,13 @@ enum Command {
     /// Search multiple engines concurrently, deduplicate URLs, and report failures
     Meta {
         /// Comma-separated engines; may also be specified repeatedly
-        #[arg(short, long, value_enum, value_delimiter = ',', default_value = "duckduckgo,qwant,wikipedia")]
+        #[arg(
+            short,
+            long,
+            value_enum,
+            value_delimiter = ',',
+            default_value = "duckduckgo,qwant,wikipedia"
+        )]
         engines: Vec<Backend>,
         #[command(flatten)]
         query: Query,
@@ -105,7 +111,10 @@ fn nonblank(value: &str) -> Result<String, String> {
 fn validate_url(value: &str, schemes: &[&str]) -> Result<String, String> {
     let parsed = url::Url::parse(value).map_err(|_| "expected an absolute URL".to_string())?;
     if !schemes.contains(&parsed.scheme()) || parsed.host_str().is_none() {
-        return Err(format!("expected an absolute {} URL with a host", schemes.join("/")));
+        return Err(format!(
+            "expected an absolute {} URL with a host",
+            schemes.join("/")
+        ));
     }
     Ok(value.to_owned())
 }
@@ -115,7 +124,10 @@ fn page_url(value: &str) -> Result<String, String> {
 }
 
 fn proxy_url(value: &str) -> Result<String, String> {
-    validate_url(value, &["http", "https", "socks4", "socks4a", "socks5", "socks5h"])
+    validate_url(
+        value,
+        &["http", "https", "socks4", "socks4a", "socks5", "socks5h"],
+    )
 }
 
 #[derive(Debug)]
@@ -152,7 +164,9 @@ fn collect_meta(results: Vec<(Engine, omnifind::Result<Vec<SearchResult>>)>) -> 
                     }
                 }
             }
-            Err(error) => report.warnings.push(format!("{}: {error}", engine.as_str())),
+            Err(error) => report
+                .warnings
+                .push(format!("{}: {error}", engine.as_str())),
         }
     }
     report
@@ -165,7 +179,11 @@ async fn execute(cli: &Cli) -> Result<Output, Box<dyn Error>> {
     }
     let client = builder.build()?;
     let output = match &cli.command {
-        Command::Search { engine, query } => Output::Search(client.search((*engine).into(), &query.query, query.limit.get()).await?),
+        Command::Search { engine, query } => Output::Search(
+            client
+                .search((*engine).into(), &query.query, query.limit.get())
+                .await?,
+        ),
         Command::Meta { engines, query } => {
             let mut unique = Vec::new();
             for backend in engines {
@@ -176,7 +194,12 @@ async fn execute(cli: &Cli) -> Result<Output, Box<dyn Error>> {
             }
             let requests = unique.into_iter().map(|engine| {
                 let client = &client;
-                async move { (engine, client.search(engine, &query.query, query.limit.get()).await) }
+                async move {
+                    (
+                        engine,
+                        client.search(engine, &query.query, query.limit.get()).await,
+                    )
+                }
             });
             let report = collect_meta(join_all(requests).await);
             {
@@ -190,8 +213,12 @@ async fn execute(cli: &Cli) -> Result<Output, Box<dyn Error>> {
             }
             Output::Search(report.rows)
         }
-        Command::Images(query) => Output::Images(client.images(&query.query, query.limit.get()).await?),
-        Command::Books(query) => Output::Books(client.books(&query.query, query.limit.get()).await?),
+        Command::Images(query) => {
+            Output::Images(client.images(&query.query, query.limit.get()).await?)
+        }
+        Command::Books(query) => {
+            Output::Books(client.books(&query.query, query.limit.get()).await?)
+        }
         Command::Extract { url } => Output::Page(client.extract(url).await?),
     };
     Ok(output)
@@ -202,7 +229,10 @@ fn safe(value: &str) -> String {
     value
         .chars()
         .flat_map(|ch| {
-            if ch.is_control() || ('\u{202a}'..='\u{202e}').contains(&ch) || ('\u{2066}'..='\u{2069}').contains(&ch) {
+            if ch.is_control()
+                || ('\u{202a}'..='\u{202e}').contains(&ch)
+                || ('\u{2066}'..='\u{2069}').contains(&ch)
+            {
                 ch.escape_default().collect::<Vec<_>>()
             } else {
                 vec![ch]
@@ -212,7 +242,12 @@ fn safe(value: &str) -> String {
 }
 
 fn write_json(writer: &mut impl Write, value: &impl Serialize) -> io::Result<()> {
-    serde_json::to_writer_pretty(&mut *writer, value).map_err(|error| io::Error::new(error.io_error_kind().unwrap_or(io::ErrorKind::InvalidData), error))?;
+    serde_json::to_writer_pretty(&mut *writer, value).map_err(|error| {
+        io::Error::new(
+            error.io_error_kind().unwrap_or(io::ErrorKind::InvalidData),
+            error,
+        )
+    })?;
     writeln!(writer)
 }
 
@@ -231,7 +266,15 @@ fn render(output: &Output, json: bool, writer: &mut impl Write) -> io::Result<()
                 writeln!(writer, "No results.")?;
             }
             for (index, row) in rows.iter().enumerate() {
-                writeln!(writer, "{}. [{}] {}\n   {}\n   {}\n", index + 1, safe(&row.source), safe(&row.title), safe(&row.url), safe(&row.snippet))?;
+                writeln!(
+                    writer,
+                    "{}. [{}] {}\n   {}\n   {}\n",
+                    index + 1,
+                    safe(&row.source),
+                    safe(&row.title),
+                    safe(&row.url),
+                    safe(&row.snippet)
+                )?;
             }
         }
         Output::Images(rows) => {
@@ -239,7 +282,14 @@ fn render(output: &Output, json: bool, writer: &mut impl Write) -> io::Result<()
                 writeln!(writer, "No results.")?;
             }
             for (index, row) in rows.iter().enumerate() {
-                writeln!(writer, "{}. [{}] {}\n   Image: {}", index + 1, safe(&row.source), safe(&row.title), safe(&row.image_url))?;
+                writeln!(
+                    writer,
+                    "{}. [{}] {}\n   Image: {}",
+                    index + 1,
+                    safe(&row.source),
+                    safe(&row.title),
+                    safe(&row.image_url)
+                )?;
                 if let (Some(width), Some(height)) = (row.width, row.height) {
                     writeln!(writer, "   Size: {width} x {height}")?;
                 }
@@ -257,7 +307,13 @@ fn render(output: &Output, json: bool, writer: &mut impl Write) -> io::Result<()
                 writeln!(writer, "No results.")?;
             }
             for (index, row) in rows.iter().enumerate() {
-                writeln!(writer, "{}. [{}] {}", index + 1, safe(&row.source), safe(&row.title))?;
+                writeln!(
+                    writer,
+                    "{}. [{}] {}",
+                    index + 1,
+                    safe(&row.source),
+                    safe(&row.title)
+                )?;
                 if !row.authors.is_empty() {
                     writeln!(writer, "   Authors: {}", safe(&row.authors.join(", ")))?;
                 }
@@ -277,7 +333,13 @@ fn render(output: &Output, json: bool, writer: &mut impl Write) -> io::Result<()
             }
         }
         Output::Page(page) => {
-            writeln!(writer, "Title: {}\nURL: {}\n\n{}\n\nLinks:", safe(page.title.as_deref().unwrap_or("(untitled)")), safe(&page.url), safe(&page.text))?;
+            writeln!(
+                writer,
+                "Title: {}\nURL: {}\n\n{}\n\nLinks:",
+                safe(page.title.as_deref().unwrap_or("(untitled)")),
+                safe(&page.url),
+                safe(&page.text)
+            )?;
             for link in &page.links {
                 writeln!(writer, "  {}", safe(link))?;
             }
@@ -290,12 +352,19 @@ fn render(output: &Output, json: bool, writer: &mut impl Write) -> io::Result<()
 async fn main() -> ExitCode {
     let cli = Cli::parse();
     let result = match execute(&cli).await {
-        Ok(output) => render(&output, cli.json, &mut io::stdout().lock()).map_err(|error| Box::new(error) as Box<dyn Error>),
+        Ok(output) => render(&output, cli.json, &mut io::stdout().lock())
+            .map_err(|error| Box::new(error) as Box<dyn Error>),
         Err(error) => Err(error),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
-        Err(error) if error.downcast_ref::<io::Error>().is_some_and(|error| error.kind() == io::ErrorKind::BrokenPipe) => ExitCode::SUCCESS,
+        Err(error)
+            if error
+                .downcast_ref::<io::Error>()
+                .is_some_and(|error| error.kind() == io::ErrorKind::BrokenPipe) =>
+        {
+            ExitCode::SUCCESS
+        }
         Err(error) => {
             let _ = writeln!(io::stderr().lock(), "error: {}", safe(&error.to_string()));
             ExitCode::FAILURE
@@ -324,22 +393,49 @@ mod tests {
 
     #[test]
     fn parses_search_with_global_flags_after_subcommand() {
-        let cli = Cli::try_parse_from(["cli", "search", "-e", "wiki", "Rust language", "--limit", "3", "--json", "--timeout", "8"]).unwrap();
+        let cli = Cli::try_parse_from([
+            "cli",
+            "search",
+            "-e",
+            "wiki",
+            "Rust language",
+            "--limit",
+            "3",
+            "--json",
+            "--timeout",
+            "8",
+        ])
+        .unwrap();
         assert!(cli.json);
         assert_eq!(cli.timeout.get(), 8);
-        assert!(matches!(cli.command, Command::Search { engine: Backend::Wikipedia, query: Query { query, limit } } if query == "Rust language" && limit.get() == 3));
+        assert!(
+            matches!(cli.command, Command::Search { engine: Backend::Wikipedia, query: Query { query, limit } } if query == "Rust language" && limit.get() == 3)
+        );
     }
 
     #[test]
     fn defaults_to_five_duckduckgo_results() {
         let cli = Cli::try_parse_from(["cli", "search", "Rust"]).unwrap();
-        assert!(matches!(cli.command, Command::Search { engine: Backend::DuckDuckGo, query: Query { limit, .. } } if limit.get() == 5));
+        assert!(
+            matches!(cli.command, Command::Search { engine: Backend::DuckDuckGo, query: Query { limit, .. } } if limit.get() == 5)
+        );
     }
 
     #[test]
     fn parses_comma_separated_and_repeated_engines() {
-        let cli = Cli::try_parse_from(["cli", "meta", "Rust", "--engines", "ddg,wiki", "--engines", "qwant"]).unwrap();
-        assert!(matches!(cli.command, Command::Meta { engines, .. } if engines == vec![Backend::DuckDuckGo, Backend::Wikipedia, Backend::Qwant]));
+        let cli = Cli::try_parse_from([
+            "cli",
+            "meta",
+            "Rust",
+            "--engines",
+            "ddg,wiki",
+            "--engines",
+            "qwant",
+        ])
+        .unwrap();
+        assert!(
+            matches!(cli.command, Command::Meta { engines, .. } if engines == vec![Backend::DuckDuckGo, Backend::Wikipedia, Backend::Qwant])
+        );
     }
 
     #[test]
@@ -369,9 +465,26 @@ mod tests {
 
     #[test]
     fn parses_remaining_commands_and_proxy() {
-        assert!(matches!(Cli::try_parse_from(["cli", "images", "nebula"]).unwrap().command, Command::Images(_)));
-        assert!(matches!(Cli::try_parse_from(["cli", "books", "The Hobbit"]).unwrap().command, Command::Books(_)));
-        let cli = Cli::try_parse_from(["cli", "--proxy", "socks5h://localhost:1080", "extract", "https://example.com"]).unwrap();
+        assert!(matches!(
+            Cli::try_parse_from(["cli", "images", "nebula"])
+                .unwrap()
+                .command,
+            Command::Images(_)
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["cli", "books", "The Hobbit"])
+                .unwrap()
+                .command,
+            Command::Books(_)
+        ));
+        let cli = Cli::try_parse_from([
+            "cli",
+            "--proxy",
+            "socks5h://localhost:1080",
+            "extract",
+            "https://example.com",
+        ])
+        .unwrap();
         assert_eq!(cli.proxy.as_deref(), Some("socks5h://localhost:1080"));
         assert!(matches!(cli.command, Command::Extract { .. }));
     }
@@ -380,7 +493,13 @@ mod tests {
     fn meta_deduplicates_exact_urls_but_keeps_case_sensitive_paths() {
         let report = collect_meta(vec![
             (Engine::DuckDuckGo, Ok(vec![row("https://example.com/A")])),
-            (Engine::Wikipedia, Ok(vec![row("https://example.com/A"), row("https://example.com/a")])),
+            (
+                Engine::Wikipedia,
+                Ok(vec![
+                    row("https://example.com/A"),
+                    row("https://example.com/a"),
+                ]),
+            ),
         ]);
         assert_eq!(report.successful_engines, 2);
         assert_eq!(report.rows.len(), 2);
@@ -390,7 +509,10 @@ mod tests {
     #[test]
     fn meta_preserves_partial_failure_information() {
         let report = collect_meta(vec![
-            (Engine::Wikipedia, Err(omnifind::Error::Configuration("fixture failure".into()))),
+            (
+                Engine::Wikipedia,
+                Err(omnifind::Error::Configuration("fixture failure".into())),
+            ),
             (Engine::Qwant, Ok(vec![row("https://example.com")])),
         ]);
         assert_eq!(report.successful_engines, 1);
@@ -400,7 +522,10 @@ mod tests {
 
     #[test]
     fn meta_distinguishes_all_failed_from_successful_empty_results() {
-        let failed = collect_meta(vec![(Engine::Wikipedia, Err(omnifind::Error::Configuration("fixture failure".into())))]);
+        let failed = collect_meta(vec![(
+            Engine::Wikipedia,
+            Err(omnifind::Error::Configuration("fixture failure".into())),
+        )]);
         assert_eq!(failed.successful_engines, 0);
         let empty = collect_meta(vec![(Engine::Wikipedia, Ok(Vec::new()))]);
         assert_eq!(empty.successful_engines, 1);
@@ -410,7 +535,12 @@ mod tests {
     #[test]
     fn json_preserves_the_library_result_schema() {
         let mut bytes = Vec::new();
-        render(&Output::Search(vec![row("https://example.com")]), true, &mut bytes).unwrap();
+        render(
+            &Output::Search(vec![row("https://example.com")]),
+            true,
+            &mut bytes,
+        )
+        .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(json[0]["url"], "https://example.com");
         assert!(bytes.ends_with(b"\n"));
@@ -436,7 +566,10 @@ mod tests {
 
     #[test]
     fn text_escapes_terminal_controls() {
-        assert_eq!(safe("x\u{1b}[31m\n\t\u{202e}é"), "x\\u{1b}[31m\\n\\t\\u{202e}é");
+        assert_eq!(
+            safe("x\u{1b}[31m\n\t\u{202e}é"),
+            "x\\u{1b}[31m\\n\\t\\u{202e}é"
+        );
         let mut item = row("https://example.com");
         item.title = "title\u{1b}[2J".into();
         let mut bytes = Vec::new();

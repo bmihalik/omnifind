@@ -19,8 +19,16 @@ impl Wikipedia {
         }
         let endpoint = "https://en.wikipedia.org/w/api.php";
         let limit_string = limit.min(50).to_string();
-        let params = [("action", "query"), ("list", "search"), ("srsearch", query), ("srlimit", limit_string.as_str()), ("format", "json"), ("utf8", "1")];
-        let parsed: ApiResponse = checked_json("wikipedia", self.client.get(endpoint).query(&params)).await?;
+        let params = [
+            ("action", "query"),
+            ("list", "search"),
+            ("srsearch", query),
+            ("srlimit", limit_string.as_str()),
+            ("format", "json"),
+            ("utf8", "1"),
+        ];
+        let parsed: ApiResponse =
+            checked_json("wikipedia", self.client.get(endpoint).query(&params)).await?;
         let rows = parsed
             .query
             .ok_or_else(|| Error::InvalidResponse {
@@ -64,5 +72,12 @@ fn encode_title(title: &str) -> String {
 }
 
 fn strip_tags(html: &str) -> String {
-    scraper::Html::parse_fragment(html).root_element().text().collect::<Vec<_>>().join("").split_whitespace().collect::<Vec<_>>().join(" ")
+    scraper::Html::parse_fragment(html)
+        .root_element()
+        .text()
+        .collect::<Vec<_>>()
+        .join("")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }

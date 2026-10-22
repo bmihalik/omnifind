@@ -18,8 +18,22 @@ impl Qwant {
             return Ok(Vec::new());
         }
         let count = limit.min(10).to_string();
-        let params = [("q", query), ("count", count.as_str()), ("safesearch", "1"), ("locale", "en_US"), ("offset", "0"), ("device", "desktop")];
-        let value: Value = checked_json("qwant", self.client.get("https://api.qwant.com/v3/search/web").header("Referer", "https://www.qwant.com/").query(&params)).await?;
+        let params = [
+            ("q", query),
+            ("count", count.as_str()),
+            ("safesearch", "1"),
+            ("locale", "en_US"),
+            ("offset", "0"),
+            ("device", "desktop"),
+        ];
+        let value: Value = checked_json(
+            "qwant",
+            self.client
+                .get("https://api.qwant.com/v3/search/web")
+                .header("Referer", "https://www.qwant.com/")
+                .query(&params),
+        )
+        .await?;
         let rows = value
             .pointer("/data/result/items/mainline/0/items")
             .or_else(|| value.pointer("/data/result/items"))
@@ -49,5 +63,9 @@ impl Qwant {
 }
 
 fn text(value: &Value, key: &str) -> String {
-    value.get(key).and_then(Value::as_str).unwrap_or_default().to_owned()
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned()
 }

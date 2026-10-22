@@ -31,12 +31,20 @@ impl Marginalia {
         self.search_at(ENDPOINT, query, limit).await
     }
 
-    pub(crate) async fn search_at(&self, endpoint: &str, query: &str, limit: usize) -> Result<MarginaliaResponse> {
+    pub(crate) async fn search_at(
+        &self,
+        endpoint: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<MarginaliaResponse> {
         let count = limit.min(MAX_RESULTS);
         let count_string = count.to_string();
         let parsed: ApiResponse = checked_json(
             "marginalia",
-            self.client.get(endpoint).header("API-Key", self.api_key.clone()).query(&[("query", query), ("count", count_string.as_str())]),
+            self.client
+                .get(endpoint)
+                .header("API-Key", self.api_key.clone())
+                .query(&[("query", query), ("count", count_string.as_str())]),
         )
         .await?;
         if parsed.license.trim().is_empty() {
@@ -52,10 +60,17 @@ impl Marginalia {
             let Ok(url) = url::Url::parse(&row.url) else {
                 continue;
             };
-            if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() || !url.username().is_empty() || url.password().is_some() {
+            if !matches!(url.scheme(), "http" | "https")
+                || url.host_str().is_none()
+                || !url.username().is_empty()
+                || url.password().is_some()
+            {
                 continue;
             }
-            let title = row.title.filter(|title| !title.trim().is_empty()).unwrap_or_else(|| row.url.clone());
+            let title = row
+                .title
+                .filter(|title| !title.trim().is_empty())
+                .unwrap_or_else(|| row.url.clone());
             results.push(SearchResult {
                 title,
                 url: row.url,

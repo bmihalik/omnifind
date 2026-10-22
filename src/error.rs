@@ -8,7 +8,10 @@ pub enum Error {
     #[error("remote service returned HTTP {status} for {url}")]
     Status { status: u16, url: String },
     #[error("invalid response from {engine}: {message}")]
-    InvalidResponse { engine: &'static str, message: String },
+    InvalidResponse {
+        engine: &'static str,
+        message: String,
+    },
     #[error("URL error: {0}")]
     Url(#[from] url::ParseError),
     #[error("JSON error: {0}")]

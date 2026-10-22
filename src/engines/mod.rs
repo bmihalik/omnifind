@@ -28,10 +28,23 @@ pub(crate) async fn checked_text(request: primp::RequestBuilder) -> Result<Strin
 }
 
 /// Decode a JSON response without exposing response bodies in errors.
-pub(crate) async fn checked_json<T: serde::de::DeserializeOwned>(engine: &'static str, request: primp::RequestBuilder) -> Result<T> {
+pub(crate) async fn checked_json<T: serde::de::DeserializeOwned>(
+    engine: &'static str,
+    request: primp::RequestBuilder,
+) -> Result<T> {
     let response = checked_response(request.header("Accept", "application/json")).await?;
-    let content_type = response.headers().get("content-type").and_then(|value| value.to_str().ok()).unwrap_or("unspecified").to_owned();
-    let content_encoding = response.headers().get("content-encoding").and_then(|value| value.to_str().ok()).unwrap_or("identity/decoded").to_owned();
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("unspecified")
+        .to_owned();
+    let content_encoding = response
+        .headers()
+        .get("content-encoding")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("identity/decoded")
+        .to_owned();
     let body = response.text().await?;
     serde_json::from_str(&body).map_err(|error| Error::InvalidResponse {
         engine,
